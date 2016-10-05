@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import sys
 import socket
@@ -13,19 +13,19 @@ def stringToNetwork(orig_string):
         orig_string (string): the string to convert
 
     Returns:
-        string: The network formatted string.
+        bytes: The network formatted string (as bytes)
 
     Example:
         stringToNetwork('www.sandiego.edu.edu') will return
           (3)www(8)sandiego(3)edu(0)
     """
     ls = orig_string.split('.')
-    toReturn = ""
+    toReturn = b""
     for item in ls:
         formatString = "B"
         formatString += str(len(item))
         formatString += "s"
-        toReturn += pack(formatString, len(item), item)
+        toReturn += pack(formatString, len(item), item.encode())
     toReturn += pack("B", 0)
     return toReturn
 
@@ -50,14 +50,14 @@ def networkToString(response, start):
     position = start
     length = -1
     while True:
-        length = unpack("!B", response[position])[0]
+        length = unpack("!B", response[position:position+1])[0]
         if length == 0:
             position += 1
             break
 
         # Handle DNS pointers (!!)
         elif (length & 1 << 7) and (length & 1 << 6):
-            b2 = unpack("!B", response[position+1])[0]
+            b2 = unpack("!B", response[position+1:position+2])[0]
             offset = 0
             for i in range(6) :
                 offset += (length & 1 << i)
@@ -68,7 +68,7 @@ def networkToString(response, start):
 
         formatString = str(length) + "s"
         position += 1
-        toReturn += unpack(formatString, response[position:position+length])[0]
+        toReturn += unpack(formatString, response[position:position+length])[0].decode()
         toReturn += "."
         position += length
     return toReturn[:-1], position
@@ -122,7 +122,7 @@ def main(argv=None):
         # You'll need to unpack any response you get using the unpack function
 
     except socket.timeout as e:
-        print "Exception:", e
+        print("Exception:", e)
 
 if __name__ == "__main__":
     sys.exit(main())
