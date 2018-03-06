@@ -1,0 +1,6 @@
+*.swp
+*.class
+*.o
+*.pyc
+
+resolver
