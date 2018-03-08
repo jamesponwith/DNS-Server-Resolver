@@ -119,10 +119,22 @@ def main(argv=None):
         argv = sys.argv
 
     args = parseArgs()
-
+    
+# TODO:
+    # 1. Check if -m flag is declared
+        # if no, request for type A (value = 1)
+        # if yes, request for type MX (value = 15)
+    # 2. Populate collection of root DNS server IP addrs from root-servers.txt
+    # 3. Create UDP socket and craft query
+    # 4. Send query to root server and wait. If wait too long, move to next root
+    # 5. Repeat 3 and 4 until revieceing an authoritative response. If the
+    # response is not authoritative than it should respond with one or more NS
+    # entries that we should use for next query
+    # 6. Inform user of result than exit 
+    
     with open('root-servers.txt') as f:
         servers = f.read().splitlines()
-
+    
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.settimeout(5)   # socket should timeout after 5 seconds
 
