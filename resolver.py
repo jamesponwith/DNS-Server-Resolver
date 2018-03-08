@@ -106,14 +106,22 @@ def constructQuery(ID, hostname):
     return query
 
 
-def main(argv=None):
-    if argv is None:
-        argv = sys.argv
-
+def parseArgs():
     parser = argparse.ArgumentParser()
     parser.add_argument("-m", "--mxlookup",  help="MX lookup", action="store_true")
     parser.add_argument("host_ip", help="Host name's IP address", type=str)
     args = parser.parse_args()
+    return args
+
+
+def main(argv=None):
+    if argv is None:
+        argv = sys.argv
+
+    args = parseArgs()
+
+    with open('root-servers.txt') as f:
+        servers = f.read().splitlines()
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.settimeout(5)   # socket should timeout after 5 seconds
