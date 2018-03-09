@@ -3,6 +3,7 @@
 import argparse
 import sys
 import socket
+import random
 from struct import *
 
 def stringToNetwork(orig_string):
@@ -40,8 +41,9 @@ def networkToString(response, start):
         start (int): the location within the message where the network string
             starts.
 
-    Returns:
+    Returns (touple):
         string: The human readable string.
+        int: position in the response where string ends
 
     Example:  networkToString('(3)www(8)sandiego(3)edu(0)', 0) will return
               'www.sandiego.edu'
@@ -114,41 +116,44 @@ def parseArgs():
     return args
 
 
+def recursiveFunction(sock, port, query, servers):
+
+    for ip_addr in servers:
+        try:
+            # send the message to 172.16.7.15 (the IP of USD's DNS server)
+            # this is an example
+            # sock.sendto(query, ("172.16.7.15", 53))
+            print(ip_addr)
+            sock.sendto(query, (ip_addr, 53))
+            response = sock.recv(4096)
+            # You'll need to unpack any response you get using the unpack function
+            print(response)
+
+            # know what the format of DNS message is to know where to find the network
+
+        except socket.timeout as e:
+            print("Exception:", e)
+
+
 def main(argv=None):
     if argv is None:
         argv = sys.argv
 
     args = parseArgs()
-    
-# TODO:
-    # 1. Check if -m flag is declared
-        # if no, request for type A (value = 1)
-        # if yes, request for type MX (value = 15)
-    # 2. Populate collection of root DNS server IP addrs from root-servers.txt
-    # 3. Create UDP socket and craft query
-    # 4. Send query to root server and wait. If wait too long, move to next root
-    # 5. Repeat 3 and 4 until revieceing an authoritative response. If the
-    # response is not authoritative than it should respond with one or more NS
-    # entries that we should use for next query
-    # 6. Inform user of result than exit 
-    
     with open('root-servers.txt') as f:
         servers = f.read().splitlines()
-    
+
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.settimeout(5)   # socket should timeout after 5 seconds
 
     # create a query with a random id for hostname www.sandiego.edu's IP addr
-    query = constructQuery(24021, "www.sandiego.edu")
+    id = random.randint(0, 65535) 
+    # this is an example
+    # query = constructQuery(24021, "www.sandiego.edu")
+    query = constructQuery(id, args.host_ip)
 
-    try:
-        # send the message to 172.16.7.15 (the IP of USD's DNS server)
-        sock.sendto(query, ("172.16.7.15", 53))
-        response = sock.recv(4096)
-        # You'll need to unpack any response you get using the unpack function
+    recursiveFunction(sock, 53, query, servers)
 
-    except socket.timeout as e:
-        print("Exception:", e)
 
 if __name__ == "__main__":
     sys.exit(main())
