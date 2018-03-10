@@ -46,7 +46,7 @@ def networkToString(response, start):
         int: position in the response where string ends
 
     Example:  networkToString('(3)www(8)sandiego(3)edu(0)', 0) will return
-              'www.sandiego.edu'
+              ('www.sandiego.edu', 12)
     """
 
     toReturn = ""
@@ -75,7 +75,7 @@ def networkToString(response, start):
         toReturn += "."
         position += length
     return toReturn[:-1], position
-    
+
 
 def constructQuery(ID, hostname):
     """
@@ -116,19 +116,68 @@ def parseArgs():
     return args
 
 
-def recursiveFunction(sock, port, query, servers):
+def unpackResponse(response):
+    ''' 
+    id      2 bytes
+    flags   2 bytes
+    #q's    2 bytes
+    #ansers 2 bytes
+    auth rr 2 byres
+    addit rr    2 bytes
+    Question 'hame' starts at 12
+        + 2 bytes for type
+        + 2 bytes for class
+    Answers start right after last 2 of question:
+        2 bytes for names response
+        2 bytes for type
+        2 bytes for class
+        4 bytes for ttl
+        2 bytes forl ength
+        address of length specified starts at end of last query + 12
+    '''
+    id = (response[0] + response[1])
+    print(id)
+    flags = (response[2] + response[3])
+    print(flags)
+    numQuestions = (16 * response[4]) + response[5]
+    numAnsers = (16 * response[6]) +  response[7]
+    numAuth = (16 * response[8]) + response[9]
+    numAddition = (16 * response[10]) + response[11]
+    # print("q:", numQuestions, numAnsers, numAuth, numAddition)
 
+    # print(response[12])
+    Question = networkToString(response, 12)
+    # print(Question[0])
+
+    firstAnswer = networkToString(response, Question[1] + 16)
+    # print(firstAnswer)
+
+    secondAnswer = networkToString(response, firstAnswer[1] + 12)
+    # print(secondAnswer)
+        # try:
+            # queried_domain, qd_index = networkToString(response, i)
+            # i = qd_index
+            # print(queried_domain)
+        # except:
+            # continue
+
+
+    # thing, qd_index - networkToString(
+
+
+def recursiveFunction(sock, port, query, servers):
     for ip_addr in servers:
+        print(ip_addr)
         try:
             # send the message to 172.16.7.15 (the IP of USD's DNS server)
             # this is an example
             # sock.sendto(query, ("172.16.7.15", 53))
-            print(ip_addr)
+            # print(ip_addr)
             sock.sendto(query, (ip_addr, 53))
             response = sock.recv(4096)
             # You'll need to unpack any response you get using the unpack function
-            print(response)
 
+            unpackResponse(response)
             # know what the format of DNS message is to know where to find the network
 
         except socket.timeout as e:
@@ -140,6 +189,7 @@ def main(argv=None):
         argv = sys.argv
 
     args = parseArgs()
+
     with open('root-servers.txt') as f:
         servers = f.read().splitlines()
 
