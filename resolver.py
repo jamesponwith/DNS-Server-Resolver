@@ -4,7 +4,10 @@ import argparse
 import sys
 import socket
 import random
-from struct import *
+#  import struct
+from struct import pack
+from struct import unpack
+
 
 def stringToNetwork(orig_string):
     """
@@ -62,7 +65,7 @@ def networkToString(response, start):
         elif (length & 1 << 7) and (length & 1 << 6):
             b2 = unpack("!B", response[position+1:position+2])[0]
             offset = 0
-            for i in range(6) :
+            for i in range(6):
                 offset += (length & 1 << i)
             for i in range(8):
                 offset += (b2 & 1 << i)
@@ -71,7 +74,8 @@ def networkToString(response, start):
 
         formatString = str(length) + "s"
         position += 1
-        toReturn += unpack(formatString, response[position:position+length])[0].decode()
+        toReturn += unpack(
+                formatString, response[position:position+length])[0].decode()
         toReturn += "."
         position += length
     return toReturn[:-1], position
@@ -85,10 +89,10 @@ def constructQuery(ID, hostname):
         ID (int): ID # for the message
         hostname (string): What we're asking for
 
-    Returns: 
+    Returns:
         string: "Packed" string containing a valid DNS query message
     """
-    flags = 0 # 0 implies basic iterative query
+    flags = 0   # 0 implies basic iterative query
 
     # one question, no answers for basic query
     num_questions = 1
@@ -98,11 +102,13 @@ def constructQuery(ID, hostname):
 
     # "!HHHHHH" means pack 6 Half integers (i.e. 16-bit values) into a single
     # string, with data placed in network order (!)
-    header = pack("!HHHHHH", ID, flags, num_questions, num_answers, num_auth,
-            num_other)
+    header = pack(
+            "!HHHHHH", ID, flags, num_questions,
+            num_answers, num_auth, num_other)
 
     qname = stringToNetwork(hostname)
-    qtype = 1 # request A type
+    # request A type
+    qtype = 1
     remainder = pack("!HH", qtype, 1)
     query = header + qname + remainder
     return query
@@ -110,14 +116,15 @@ def constructQuery(ID, hostname):
 
 def parseArgs():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-m", "--mxlookup",  help="MX lookup", action="store_true")
+    parser.add_argument(
+            "-m", "--mxlookup",  help="MX lookup", action="store_true")
     parser.add_argument("host_ip", help="Host name's IP address", type=str)
     args = parser.parse_args()
     return args
 
 
 def unpackResponse(response):
-    ''' 
+    '''
     id      2 bytes
     flags   2 bytes
     #q's    2 bytes
@@ -140,9 +147,13 @@ def unpackResponse(response):
     flags = (response[2] + response[3])
     print(flags)
     numQuestions = (16 * response[4]) + response[5]
-    numAnsers = (16 * response[6]) +  response[7]
+    print(numQuestions)
+    numAnswers = (16 * response[6]) + response[7]
+    print(numAnswers)
     numAuth = (16 * response[8]) + response[9]
+    print(numAuth)
     numAddition = (16 * response[10]) + response[11]
+    print(numAddition)
     # print("q:", numQuestions, numAnsers, numAuth, numAddition)
 
     # print(response[12])
@@ -153,16 +164,7 @@ def unpackResponse(response):
     # print(firstAnswer)
 
     secondAnswer = networkToString(response, firstAnswer[1] + 12)
-    # print(secondAnswer)
-        # try:
-            # queried_domain, qd_index = networkToString(response, i)
-            # i = qd_index
-            # print(queried_domain)
-        # except:
-            # continue
-
-
-    # thing, qd_index - networkToString(
+    print(secondAnswer)
 
 
 def recursiveFunction(sock, port, query, servers):
@@ -175,10 +177,10 @@ def recursiveFunction(sock, port, query, servers):
             # print(ip_addr)
             sock.sendto(query, (ip_addr, 53))
             response = sock.recv(4096)
-            # You'll need to unpack any response you get using the unpack function
+            # You'll need to unpack any response you get using the unpack
 
             unpackResponse(response)
-            # know what the format of DNS message is to know where to find the network
+            # know format of DNS messageis to know where to find the network
 
         except socket.timeout as e:
             print("Exception:", e)
@@ -197,7 +199,7 @@ def main(argv=None):
     sock.settimeout(5)   # socket should timeout after 5 seconds
 
     # create a query with a random id for hostname www.sandiego.edu's IP addr
-    id = random.randint(0, 65535) 
+    id = random.randint(0, 65535)
     # this is an example
     # query = constructQuery(24021, "www.sandiego.edu")
     query = constructQuery(id, args.host_ip)
