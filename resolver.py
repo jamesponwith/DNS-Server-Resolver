@@ -125,7 +125,6 @@ def getBits(bytes):
         for i in range(8):
             yield(b >> i) & 1
 
-
 def unpackResponse(response):
     '''
     Question 'hame' starts at 12
@@ -147,6 +146,13 @@ def unpackResponse(response):
     arCount = unpack('!H', response[10:12])[0]
     print("q:", qdCount, anCount, nsCount, arCount)
 
+    # Flag bit manipulation
+    aaFlag = ((flags & 0x0400) != 0)
+    #aaFlag = ((flags << 6) >> 15) - 64
+    #aaFlag = (flags >> 9) & 1
+    rcFlag = (flags & 15)
+    print(aaFlag)
+    print(rcFlag)
     # print(response[12])
     question = networkToString(response, 12)
 
@@ -174,13 +180,13 @@ def sendAndReceive(sock, port, query, servers):
             # You'll need to unpack any response you get using the unpack
 
             new_servers = unpackResponse(response)
-            for s in new_servers:
-                print(s)
+            #for s in new_servers:
+             #   print(s)
             # know format of DNS messageis to know where to find the network
 
         except socket.timeout as e:
             print("Exception:", e)
-        break
+        #break
     #  sendAndReceive(sock, port, query, new_servers)
 
 
@@ -194,7 +200,7 @@ def main(argv=None):
         servers = f.read().splitlines()
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sock.settimeout(5)   # socket should timeout after 5 seconds
+    sock.settimeout(10)   # socket should timeout after 5 seconds
 
     # create a query with a random id for hostname www.sandiego.edu's IP addr
     id = random.randint(0, 65535)
