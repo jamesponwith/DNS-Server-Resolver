@@ -4,7 +4,10 @@ import argparse
 import sys
 import socket
 import random
-from struct import *
+#  import struct
+from struct import pack
+from struct import unpack
+
 
 def stringToNetwork(orig_string):
     """
@@ -62,7 +65,7 @@ def networkToString(response, start):
         elif (length & 1 << 7) and (length & 1 << 6):
             b2 = unpack("!B", response[position+1:position+2])[0]
             offset = 0
-            for i in range(6) :
+            for i in range(6):
                 offset += (length & 1 << i)
             for i in range(8):
                 offset += (b2 & 1 << i)
@@ -71,7 +74,8 @@ def networkToString(response, start):
 
         formatString = str(length) + "s"
         position += 1
-        toReturn += unpack(formatString, response[position:position+length])[0].decode()
+        toReturn += unpack(
+                formatString, response[position:position+length])[0].decode()
         toReturn += "."
         position += length
     return toReturn[:-1], position
@@ -85,10 +89,10 @@ def constructQuery(ID, hostname):
         ID (int): ID # for the message
         hostname (string): What we're asking for
 
-    Returns: 
+    Returns:
         string: "Packed" string containing a valid DNS query message
     """
-    flags = 0 # 0 implies basic iterative query
+    flags = 0   # 0 implies basic iterative query
 
     # one question, no answers for basic query
     num_questions = 1
@@ -98,11 +102,13 @@ def constructQuery(ID, hostname):
 
     # "!HHHHHH" means pack 6 Half integers (i.e. 16-bit values) into a single
     # string, with data placed in network order (!)
-    header = pack("!HHHHHH", ID, flags, num_questions, num_answers, num_auth,
-            num_other)
+    header = pack(
+            "!HHHHHH", ID, flags, num_questions,
+            num_answers, num_auth, num_other)
 
     qname = stringToNetwork(hostname)
-    qtype = 1 # request A type
+    # request A type
+    qtype = 1
     remainder = pack("!HH", qtype, 1)
     query = header + qname + remainder
     return query
@@ -110,14 +116,15 @@ def constructQuery(ID, hostname):
 
 def parseArgs():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-m", "--mxlookup",  help="MX lookup", action="store_true")
+    parser.add_argument(
+            "-m", "--mxlookup",  help="MX lookup", action="store_true")
     parser.add_argument("host_ip", help="Host name's IP address", type=str)
     args = parser.parse_args()
     return args
 
 
 def unpackResponse(response):
-    ''' 
+    '''
     id      2 bytes
     flags   2 bytes
     #q's    2 bytes
@@ -140,6 +147,7 @@ def unpackResponse(response):
     # flags = (response[2] + response[3])
     numQuestions = (16 * response[4]) + response[5]
     numAnswers = (16 * response[6]) +  response[7]
+    numAnswers = (16 * response[6]) + response[7]
     numAuth = (16 * response[8]) + response[9]
     numAddition = (16 * response[10]) + response[11]
     print("q:", numQuestions, numAnswers, numAuth, numAddition)
@@ -155,14 +163,6 @@ def unpackResponse(response):
     servers = [x[0] for x in server_tuples]
     print(*servers, sep="\n")
 
-    # thing, qd_index - networkToString(
-def printAnswers(response, prevAnswer):
-    if networkToString(response, prevAnswer[1] + 12) is None:
-        return
-    nextAns = networkToString(response, prevAnswer[1] + 12)
-    print(networkToString(response, prevAnswer[1] + 12)) 
-    printAnswers(response, nextAns)
-
 
 def recursiveFunction(sock, port, query, servers):
     for ip_addr in servers:
@@ -174,10 +174,10 @@ def recursiveFunction(sock, port, query, servers):
             # print(ip_addr)
             sock.sendto(query, (ip_addr, 53))
             response = sock.recv(4096)
-            # You'll need to unpack any response you get using the unpack function
+            # You'll need to unpack any response you get using the unpack
 
             unpackResponse(response)
-            # know what the format of DNS message is to know where to find the network
+            # know format of DNS messageis to know where to find the network
 
         except socket.timeout as e:
             print("Exception:", e)
