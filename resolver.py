@@ -128,12 +128,6 @@ def getBits(bytes):
 
 def unpackResponse(response):
     '''
-    id      2 bytes
-    flags   2 bytes
-    #q's    2 bytes
-    #ansers 2 bytes
-    auth rr 2 byres
-    addit rr    2 bytes
     Question 'hame' starts at 12
         + 2 bytes for tye
         + 2 bytes for class
