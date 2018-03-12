@@ -4,7 +4,6 @@ import argparse
 import sys
 import socket
 import random
-#  import struct
 from struct import pack
 from struct import unpack
 
@@ -15,8 +14,7 @@ def stringToNetwork(orig_string):
     the network.
 
     Args:
-        orig_string (string): the string to convert
-
+        orig_string (string): the string to convert 
     Returns:
         bytes: The network formatted string (as bytes)
 
@@ -146,7 +144,7 @@ def unpackResponse(response):
     print(id)
     # flags = (response[2] + response[3])
     numQuestions = (16 * response[4]) + response[5]
-    numAnswers = (16 * response[6]) +  response[7]
+    numAnswers = (16 * response[6]) + response[7]
     numAnswers = (16 * response[6]) + response[7]
     numAuth = (16 * response[8]) + response[9]
     numAddition = (16 * response[10]) + response[11]
@@ -155,13 +153,19 @@ def unpackResponse(response):
     # print(response[12])
     question = networkToString(response, 12)
 
+    if numAuth == 0:
+        return None
+    # create list of tuples with servername and end index
     server_tuples = [networkToString(response, question[1] + 16)]
     for i in range(numAuth - 1):
-        server_tuples.append(networkToString(response, server_tuples[i][1] +
-            12))
+        server_tuples.append(
+                networkToString(response, server_tuples[i][1] + 12))
 
+    # create list of first element of the tuple
     servers = [x[0] for x in server_tuples]
-    print(*servers, sep="\n")
+    #  for server in servers:
+    #      print(server)
+    return servers
 
 
 def recursiveFunction(sock, port, query, servers):
@@ -176,12 +180,15 @@ def recursiveFunction(sock, port, query, servers):
             response = sock.recv(4096)
             # You'll need to unpack any response you get using the unpack
 
-            unpackResponse(response)
+            new_servers = unpackResponse(response)
+            for s in new_servers:
+                print(s)
             # know format of DNS messageis to know where to find the network
 
         except socket.timeout as e:
             print("Exception:", e)
-        break
+        #  break
+    #  recursiveFunction(sock, port, query, new_servers)
 
 
 def main(argv=None):
@@ -197,7 +204,7 @@ def main(argv=None):
     sock.settimeout(5)   # socket should timeout after 5 seconds
 
     # create a query with a random id for hostname www.sandiego.edu's IP addr
-    id = random.randint(0, 65535) 
+    id = random.randint(0, 65535)
     print('id = ' + str(id))
     # this is an example
     # query = constructQuery(24021, "www.sandiego.edu")
