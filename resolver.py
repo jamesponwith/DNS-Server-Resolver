@@ -132,37 +132,36 @@ def unpackResponse(response):
         2 bytes for type
         2 bytes for class
         4 bytes for ttl
-        2 bytes forl ength
+        2 bytes for length
         address of length specified starts at end of last query + 12
     '''
-    id = (response[0] + response[1])
+    id = (16 * response[0] + response[1])
     print(id)
-    flags = (response[2] + response[3])
-    print(flags)
+    # flags = (response[2] + response[3])
     numQuestions = (16 * response[4]) + response[5]
-    numAnsers = (16 * response[6]) +  response[7]
+    numAnswers = (16 * response[6]) +  response[7]
     numAuth = (16 * response[8]) + response[9]
     numAddition = (16 * response[10]) + response[11]
-    # print("q:", numQuestions, numAnsers, numAuth, numAddition)
+    print("q:", numQuestions, numAnswers, numAuth, numAddition)
 
     # print(response[12])
-    Question = networkToString(response, 12)
-    # print(Question[0])
+    question = networkToString(response, 12)
 
-    firstAnswer = networkToString(response, Question[1] + 16)
-    # print(firstAnswer)
+    server_tuples = [networkToString(response, question[1] + 16)]
+    for i in range(numAuth - 1):
+        server_tuples.append(networkToString(response, server_tuples[i][1] +
+            12))
 
-    secondAnswer = networkToString(response, firstAnswer[1] + 12)
-    # print(secondAnswer)
-        # try:
-            # queried_domain, qd_index = networkToString(response, i)
-            # i = qd_index
-            # print(queried_domain)
-        # except:
-            # continue
-
+    servers = [x[0] for x in server_tuples]
+    print(*servers, sep="\n")
 
     # thing, qd_index - networkToString(
+def printAnswers(response, prevAnswer):
+    if networkToString(response, prevAnswer[1] + 12) is None:
+        return
+    nextAns = networkToString(response, prevAnswer[1] + 12)
+    print(networkToString(response, prevAnswer[1] + 12)) 
+    printAnswers(response, nextAns)
 
 
 def recursiveFunction(sock, port, query, servers):
@@ -182,6 +181,7 @@ def recursiveFunction(sock, port, query, servers):
 
         except socket.timeout as e:
             print("Exception:", e)
+        break
 
 
 def main(argv=None):
@@ -198,6 +198,7 @@ def main(argv=None):
 
     # create a query with a random id for hostname www.sandiego.edu's IP addr
     id = random.randint(0, 65535) 
+    print('id = ' + str(id))
     # this is an example
     # query = constructQuery(24021, "www.sandiego.edu")
     query = constructQuery(id, args.host_ip)
