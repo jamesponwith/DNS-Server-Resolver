@@ -120,6 +120,11 @@ def parseArgs():
     args = parser.parse_args()
     return args
 
+def getBits(bytes):
+    for b in range(sys.getsizeof(bytes)):
+        for i in range(8):
+            yield(b >> i) & 1
+
 
 def unpackResponse(response):
     '''
@@ -130,7 +135,7 @@ def unpackResponse(response):
     auth rr 2 byres
     addit rr    2 bytes
     Question 'hame' starts at 12
-        + 2 bytes for type
+        + 2 bytes for tye
         + 2 bytes for class
     Answers start right after last 2 of question:
         2 bytes for names response
@@ -140,24 +145,22 @@ def unpackResponse(response):
         2 bytes for length
         address of length specified starts at end of last query + 12
     '''
-    id = (16 * response[0] + response[1])
-    print(id)
-    # flags = (response[2] + response[3])
-    numQuestions = (16 * response[4]) + response[5]
-    numAnswers = (16 * response[6]) + response[7]
-    numAnswers = (16 * response[6]) + response[7]
-    numAuth = (16 * response[8]) + response[9]
-    numAddition = (16 * response[10]) + response[11]
-    print("q:", numQuestions, numAnswers, numAuth, numAddition)
+    id = unpack('!H', response[0:2])[0]
+    flags = unpack('!H', response[2:4])[0]
+    qdCount = unpack('!H', response[4:6])[0]
+    anCount = unpack('!H', response[6:8])[0]
+    nsCount = unpack('!H', response[8:10])[0]
+    arCount = unpack('!H', response[10:12])[0]
+    print("q:", qdCount, anCount, nsCount, arCount)
 
     # print(response[12])
     question = networkToString(response, 12)
 
-    if numAuth == 0:
+    if nsCount == 0:
         return None
     # create list of tuples with servername and end index
     server_tuples = [networkToString(response, question[1] + 16)]
-    for i in range(numAuth - 1):
+    for i in range(nsCount - 1):
         server_tuples.append(
                 networkToString(response, server_tuples[i][1] + 12))
 
@@ -168,14 +171,10 @@ def unpackResponse(response):
     return servers
 
 
-def recursiveFunction(sock, port, query, servers):
+def sendAndReceive(sock, port, query, servers):
     for ip_addr in servers:
         print(ip_addr)
         try:
-            # send the message to 172.16.7.15 (the IP of USD's DNS server)
-            # this is an example
-            # sock.sendto(query, ("172.16.7.15", 53))
-            # print(ip_addr)
             sock.sendto(query, (ip_addr, 53))
             response = sock.recv(4096)
             # You'll need to unpack any response you get using the unpack
@@ -187,8 +186,8 @@ def recursiveFunction(sock, port, query, servers):
 
         except socket.timeout as e:
             print("Exception:", e)
-        #  break
-    #  recursiveFunction(sock, port, query, new_servers)
+        break
+    #  sendAndReceive(sock, port, query, new_servers)
 
 
 def main(argv=None):
@@ -210,7 +209,7 @@ def main(argv=None):
     # query = constructQuery(24021, "www.sandiego.edu")
     query = constructQuery(id, args.host_ip)
 
-    recursiveFunction(sock, 53, query, servers)
+    sendAndReceive(sock, 53, query, servers)
 
 
 if __name__ == "__main__":
