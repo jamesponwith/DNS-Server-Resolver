@@ -120,60 +120,68 @@ def parseArgs():
     args = parser.parse_args()
     return args
 
-def getBits(bytes):
-    for b in range(sys.getsizeof(bytes)):
-        for i in range(8):
-            yield(b >> i) & 1
-
 def unpackResponse(response):
-    '''
-    Question 'hame' starts at 12
-        + 2 bytes for tye
-        + 2 bytes for class
-    Answers start right after last 2 of question:
-        2 bytes for names response
-        2 bytes for type
-        2 bytes for class
-        4 bytes for ttl
-        2 bytes for length
-        address of length specified starts at end of last query + 12
-    '''
     id = unpack('!H', response[0:2])[0]
     flags = unpack('!H', response[2:4])[0]
     qdCount = unpack('!H', response[4:6])[0]
     anCount = unpack('!H', response[6:8])[0]
     nsCount = unpack('!H', response[8:10])[0]
     arCount = unpack('!H', response[10:12])[0]
-    print("q:", qdCount, anCount, nsCount, arCount)
 
     # Flag bit manipulation
     aaFlag = ((flags & 0x0400) != 0)
-    #aaFlag = ((flags << 6) >> 15) - 64
-    #aaFlag = (flags >> 9) & 1
     rcFlag = (flags & 15)
-    print(aaFlag)
-    print(rcFlag)
-    # print(response[12])
+
     question = networkToString(response, 12)
 
-    if nsCount == 0:
-        return None
     # create list of tuples with servername and end index
-    server_tuples = [networkToString(response, question[1] + 16)]
-    for i in range(nsCount - 1):
-        server_tuples.append(
-                networkToString(response, server_tuples[i][1] + 12))
+    print('here are the server names')
+    server_name_tuples = [networkToString(response, question[1] + 16)]
+    for i in range(nsCount-1):
+        server_name_tuples.append(
+                networkToString(response, server_name_tuples[i][1] + 12))
+        #  print(server_name_tuples[i])
+
+    # create list of strings with server names
+    servers_name_list = [x[0] for x in server_name_tuples]
+
+    #testing ever possible index to get the ip addr of server
+    # from the additional records section
+    # server_name_tuples[-1][1] is the ending index of the last auth response
+    # additional records are right after this, and are 16-28 bytes depending
+    # if there is an ipv6 record
+    print('ip address for first one should be here')
+    start = server_name_tuples[-1][1] + 12
+    end = start + 12
+    print(str(unpack('!L', response[start:start+4])[0]))
+    #  packed_thing = unpack('!L', response[start:start+4])[0]
+    print(socket.inet_ntoa(response[start:start+4]))
+    #  print(str(pack('!L', response[start:start+4])[0]))
+    #  for i in range(24):
+    #      try:
+    #          print(unpack('!I', response[server_name_tuples[-1][1]] + i))
+    #          #  print(networkToString(response, server_name_tuples[-1][1] + i))
+    #      except UnicodeDecodeError:
+    #          x = 1
+    print('but where is it?')
+    return servers_name_list 
+
+    #  server_ip_tuples = [networkToString(response,
+    #      server_name_tuples[-1][1] + 0x1c)]
+    #  print(server_ip_tuples)
+    #  for i in range(arCount-1):
+    #      print(i)
+    #      server_ip_tuples.append(
+    #              networkToString(response, server_ip_tuples[i][1] + 16))
 
     # create list of first element of the tuple
-    servers = [x[0] for x in server_tuples]
     #  for server in servers:
     #      print(server)
-    return servers
 
 
 def sendAndReceive(sock, port, query, servers):
     for ip_addr in servers:
-        print(ip_addr)
+        #  print(ip_addr)
         try:
             sock.sendto(query, (ip_addr, 53))
             response = sock.recv(4096)
@@ -186,7 +194,7 @@ def sendAndReceive(sock, port, query, servers):
 
         except socket.timeout as e:
             print("Exception:", e)
-        #break
+        break
     #  sendAndReceive(sock, port, query, new_servers)
 
 
@@ -204,7 +212,6 @@ def main(argv=None):
 
     # create a query with a random id for hostname www.sandiego.edu's IP addr
     id = random.randint(0, 65535)
-    print('id = ' + str(id))
     # this is an example
     # query = constructQuery(24021, "www.sandiego.edu")
     query = constructQuery(id, args.host_ip)
