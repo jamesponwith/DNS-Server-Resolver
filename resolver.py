@@ -6,7 +6,7 @@ import socket
 import random
 from struct import pack
 from struct import unpack
-
+from ipaddress import ip_address
 
 def stringToNetwork(orig_string):
     """
@@ -151,11 +151,46 @@ def unpackResponse(response):
     # additional records are right after this, and are 16-28 bytes depending
     # if there is an ipv6 record
     print('ip address for first one should be here')
-    start = server_name_tuples[-1][1] + 12
-    end = start + 12
-    print(str(unpack('!L', response[start:start+4])[0]))
+    ip_addr_index = server_name_tuples[-1][1] + 12
+    end = ip_addr_index + 12
+    server_ip_list = [str(socket.inet_ntoa(
+        response[ip_addr_index:ip_addr_index + 4]))]
+
+    ip_type_index = server_name_tuples[-1][1] + 2
+    print(ip_type_index)
+    ip_type = unpack('!H', response[ip_type_index:ip_type_index + 2])[0]
+    length_index = server_name_tuples[-1][1] + 10
+    data_length = unpack('!H', response[length_index:length_index + 2])[0]
+    
+       
+    for i in range(arCount - 1):
+        # if its ipv6, skip
+             #update the index
+
+        print(data_length)
+        if data_length == 4:             
+            ip_addr_index += 16
+            #length_index = ip_addr_index - 4 + 16
+            length_index += 16
+        elif data_length == 16:
+            ip_addr_index += 40
+            #length_index = ip_addr_index - 4 + 40 
+            length_index += 40 
+            data_length = unpack('!H', response[length_index:length_index + 2])[0]
+            continue
+        server_ip_list.append(str(socket.inet_ntoa(
+                response[ip_addr_index:ip_addr_index + 4])))
+                
+        
+        data_length = unpack('!H', response[length_index:length_index + 2])[0]
+
+    print(server_ip_list)    
+
+    
+
+    
+    
     #  packed_thing = unpack('!L', response[start:start+4])[0]
-    print(socket.inet_ntoa(response[start:start+4]))
     #  print(str(pack('!L', response[start:start+4])[0]))
     #  for i in range(24):
     #      try:
