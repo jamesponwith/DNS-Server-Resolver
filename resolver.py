@@ -6,7 +6,6 @@ import socket
 import random
 from struct import pack
 from struct import unpack
-from ipaddress import ip_address
 
 def stringToNetwork(orig_string):
     """
@@ -120,6 +119,30 @@ def parseArgs():
     args = parser.parse_args()
     return args
 
+
+def getServerNames(response, nsCount):
+    question = networkToString(response, 12)
+    server_name_tuples = [networkToString(response, question[1] + 16)]
+    for i in range(nsCount-1):
+        server_name_tuples.append(
+                networkToString(response, server_name_tuples[i][1] + 12))
+    servers_name_list = [x[0] for x in server_name_tuples]
+    return server_name_tuples
+
+def getServerIps(response, server_name_tuples, arCount):
+    server_ips = []
+    len_index = server_name_tuples[-1][1] + 10
+    for i in range(arCount):
+        ip_addr_index = len_index + 2
+        length = unpack('!H', response[len_index:len_index + 2])[0]
+        if length == 4:
+            server_ips.append(str(socket.inet_ntoa(
+                response[ip_addr_index:ip_addr_index + 4])))
+            len_index += 16
+        if length == 16:
+            len_index += 28 
+    return server_ips
+
 def unpackResponse(response):
     id = unpack('!H', response[0:2])[0]
     flags = unpack('!H', response[2:4])[0]
@@ -132,86 +155,31 @@ def unpackResponse(response):
     aaFlag = ((flags & 0x0400) != 0)
     rcFlag = (flags & 15)
 
-    question = networkToString(response, 12)
-
     # create list of tuples with servername and end index
     print('here are the server names')
-    server_name_tuples = [networkToString(response, question[1] + 16)]
-    for i in range(nsCount-1):
-        server_name_tuples.append(
-                networkToString(response, server_name_tuples[i][1] + 12))
-        #  print(server_name_tuples[i])
+    server_names = getServerNames(response, nsCount)
+    server_ips = getServerIps(response, server_names, arCount)
 
-    # create list of strings with server names
-    servers_name_list = [x[0] for x in server_name_tuples]
+    print(server_ips)
+    print('nsCount: ' + str(nsCount) + 'arCount: ' + str(arCount))
+    return server_ips
 
-    #testing ever possible index to get the ip addr of server
-    # from the additional records section
-    # server_name_tuples[-1][1] is the ending index of the last auth response
-    # additional records are right after this, and are 16-28 bytes depending
-    # if there is an ipv6 record
-    print('ip address for first one should be here')
-    ip_addr_index = server_name_tuples[-1][1] + 12
-    end = ip_addr_index + 12
-    server_ip_list = [str(socket.inet_ntoa(
-        response[ip_addr_index:ip_addr_index + 4]))]
 
-    ip_type_index = server_name_tuples[-1][1] + 2
-    print(ip_type_index)
-    ip_type = unpack('!H', response[ip_type_index:ip_type_index + 2])[0]
-    length_index = server_name_tuples[-1][1] + 10
-    data_length = unpack('!H', response[length_index:length_index + 2])[0]
-    
-       
-    for i in range(arCount - 1):
-        # if its ipv6, skip
-             #update the index
+def getName(response, answerStart):
+    data_length = unpack('!H', response[answerStart:answerStart + 2])
+    while data_length != 4:
+        answerStart += data_length[0] + 12
+        data_length = unpack('!H', response[answerStart:answerStart + 2])
+    return socket.inet_ntoa(response[ans_index:ans_index+4])
 
-        print(data_length)
-        if data_length == 4:             
-            ip_addr_index += 16
-            #length_index = ip_addr_index - 4 + 16
-            length_index += 16
-        elif data_length == 16:
-            ip_addr_index += 40
-            #length_index = ip_addr_index - 4 + 40 
-            length_index += 40 
-            data_length = unpack('!H', response[length_index:length_index + 2])[0]
-            continue
-        server_ip_list.append(str(socket.inet_ntoa(
-                response[ip_addr_index:ip_addr_index + 4])))
-                
-        
-        data_length = unpack('!H', response[length_index:length_index + 2])[0]
 
-    print(server_ip_list)    
-
-    
-
-    
-    
-    #  packed_thing = unpack('!L', response[start:start+4])[0]
-    #  print(str(pack('!L', response[start:start+4])[0]))
-    #  for i in range(24):
-    #      try:
-    #          print(unpack('!I', response[server_name_tuples[-1][1]] + i))
-    #          #  print(networkToString(response, server_name_tuples[-1][1] + i))
-    #      except UnicodeDecodeError:
-    #          x = 1
-    print('but where is it?')
-    return servers_name_list 
-
-    #  server_ip_tuples = [networkToString(response,
-    #      server_name_tuples[-1][1] + 0x1c)]
-    #  print(server_ip_tuples)
-    #  for i in range(arCount-1):
-    #      print(i)
-    #      server_ip_tuples.append(
-    #              networkToString(response, server_ip_tuples[i][1] + 16))
-
-    # create list of first element of the tuple
-    #  for server in servers:
-    #      print(server)
+def resolved(response):
+    anCount = unpack('!H', response[6:8])[0]
+    if anCount > 0: 
+        print('answer is here')
+        ans_start = networkToString(response, 12)[1] + 15
+        return getName(response, ans_start)
+    return None 
 
 
 def sendAndReceive(sock, port, query, servers):
@@ -222,16 +190,21 @@ def sendAndReceive(sock, port, query, servers):
             response = sock.recv(4096)
             # You'll need to unpack any response you get using the unpack
 
+            name = resolved(response)
+            if name is not None:
+                return name
+                print(name)
+                sys.exit(0)
+            # if we got servers; search them
             new_servers = unpackResponse(response)
             #for s in new_servers:
              #   print(s)
             # know format of DNS messageis to know where to find the network
+            sendAndReceive(sock, port, query, new_servers)
 
         except socket.timeout as e:
             print("Exception:", e)
         break
-    #  sendAndReceive(sock, port, query, new_servers)
-
 
 def main(argv=None):
     if argv is None:
@@ -251,7 +224,7 @@ def main(argv=None):
     # query = constructQuery(24021, "www.sandiego.edu")
     query = constructQuery(id, args.host_ip)
 
-    sendAndReceive(sock, 53, query, servers)
+    name = sendAndReceive(sock, 53, query, servers)
 
 
 if __name__ == "__main__":
