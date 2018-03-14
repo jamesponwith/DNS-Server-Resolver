@@ -120,16 +120,10 @@ def parseArgs():
     return args
 
 
-def getServerNames(response, nsCount):
-    question = networkToString(response, 12)
-    server_name_tuples = [networkToString(response, question[1] + 16)]
-    for i in range(nsCount-1):
-        server_name_tuples.append(
-                networkToString(response, server_name_tuples[i][1] + 12))
-    servers_name_list = [x[0] for x in server_name_tuples]
-    return server_name_tuples
-
 def getServerIps(response, server_name_tuples, arCount):
+    ''' 
+    Gets the list of server ips
+    '''
     server_ips = []
     len_index = server_name_tuples[-1][1] + 10
     for i in range(arCount):
@@ -143,7 +137,48 @@ def getServerIps(response, server_name_tuples, arCount):
             len_index += 28 
     return server_ips
 
+
+def getServerNames(response, nsCount):
+    '''
+    Gets the list of server names as tuples
+    we know where the authority rrs start from here
+    '''
+    question = networkToString(response, 12)
+    server_name_tuples = [networkToString(response, question[1] + 16)]
+    for i in range(nsCount-1):
+        server_name_tuples.append(
+                networkToString(response, server_name_tuples[i][1] + 12))
+    servers_name_list = [x[0] for x in server_name_tuples]
+    return server_name_tuples
+
+def getIp(response, answerStart):
+    '''
+    This is the ip address you are looking for
+    '''
+
+    data_length = unpack('!H', response[answerStart:answerStart + 2])
+    while data_length != 4:
+        answerStart += data_length[0] + 12
+        data_length = unpack('!H', response[answerStart:answerStart + 2])
+    return socket.inet_ntoa(response[ans_index:ans_index+4])
+
+
+def resolved(response):
+    '''
+    Checks if there are any answers
+    '''
+    anCount = unpack('!H', response[6:8])[0]
+    if anCount > 0: 
+        print('answer is here')
+        ans_start = networkToString(response, 12)[1] + 15
+        return getIp(response, ans_start)
+    return None 
+
+
 def unpackResponse(response):
+    '''
+    Unpacks the response for the list of server ips
+    '''
     id = unpack('!H', response[0:2])[0]
     flags = unpack('!H', response[2:4])[0]
     qdCount = unpack('!H', response[4:6])[0]
@@ -165,43 +200,24 @@ def unpackResponse(response):
     return server_ips
 
 
-def getName(response, answerStart):
-    data_length = unpack('!H', response[answerStart:answerStart + 2])
-    while data_length != 4:
-        answerStart += data_length[0] + 12
-        data_length = unpack('!H', response[answerStart:answerStart + 2])
-    return socket.inet_ntoa(response[ans_index:ans_index+4])
-
-
-def resolved(response):
-    anCount = unpack('!H', response[6:8])[0]
-    if anCount > 0: 
-        print('answer is here')
-        ans_start = networkToString(response, 12)[1] + 15
-        return getName(response, ans_start)
-    return None 
-
-
 def sendAndReceive(sock, port, query, servers):
     for ip_addr in servers:
-        #  print(ip_addr)
         try:
             sock.sendto(query, (ip_addr, 53))
             response = sock.recv(4096)
-            # You'll need to unpack any response you get using the unpack
 
+            # check if resolved
             name = resolved(response)
-            if name is not None:
+            if name is not None: # we've got a response
                 return name
                 print(name)
                 sys.exit(0)
+
             # if we got servers; search them
             new_servers = unpackResponse(response)
-            #for s in new_servers:
-             #   print(s)
-            # know format of DNS messageis to know where to find the network
-            sendAndReceive(sock, port, query, new_servers)
 
+            # recursive call
+            sendAndReceive(sock, port, query, new_servers)
         except socket.timeout as e:
             print("Exception:", e)
         break
@@ -218,12 +234,10 @@ def main(argv=None):
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.settimeout(10)   # socket should timeout after 5 seconds
 
-    # create a query with a random id for hostname www.sandiego.edu's IP addr
     id = random.randint(0, 65535)
-    # this is an example
-    # query = constructQuery(24021, "www.sandiego.edu")
     query = constructQuery(id, args.host_ip)
 
+    # the sexy recursive function
     name = sendAndReceive(sock, 53, query, servers)
 
 
