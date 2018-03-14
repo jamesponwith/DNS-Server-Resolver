@@ -228,8 +228,7 @@ def getIp(response, answerStart):
     print('data_length\t' + str(data_length))
     answer_tuple = [networkToString(response, ans_name[1] + 12)]
    #if ans_type = 1:
-    print(answer_tuple)    
-        
+     
     """
     question = networkToString(response, 12)
     server_name_tuples = [networkToString(response, question[1] + 16)]
@@ -245,7 +244,7 @@ def getIp(response, answerStart):
     #      data_length = unpack('!H', response[ans_index - 2:ans_index])
     #      print('inside loops')
     #      print(data_length)
-    return 'thing'
+    return answer_tuple 
     #  return socket.inet_ntoa(response[ans_index:ans_index+4])
 
 
