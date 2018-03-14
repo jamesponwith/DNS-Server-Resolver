@@ -187,7 +187,7 @@ def unpackResponse(response):
     rcFlag = (flags & 15)
 
     # create list of tuples with servername and end index
-    print('here are the server names')
+    #  print('here are the server names')
     server_names = getServerNames(response, nsCount)
     server_ips = getServerIps(response, server_names, arCount)
     
@@ -195,7 +195,7 @@ def unpackResponse(response):
     #    print(server_ips[i])
 
     #print(server_ips)
-    print('nsCount: ' + str(nsCount) + 'arCount: ' + str(arCount))
+    #  print('nsCount: ' + str(nsCount) + 'arCount: ' + str(arCount))
     return server_ips
 
 
@@ -205,9 +205,9 @@ def resolved(response):
     '''
     anCount = unpack('!H', response[6:8])[0]
     if anCount > 0: 
-        print('answer is here')
+        #  print('answer is here')
         ans_start = networkToString(response, 12)[1] + 15
-        print(ans_start)
+        #  print(ans_start)
         return getIp(response, ans_start)
     return None 
 
@@ -231,20 +231,18 @@ def getIp(response, answerStart):
         answer_string = socket.inet_ntoa(response[ans_index+12:ans_index +
             16])
         print(answer_string)
-    while ans_type != 1:
+    #  while ans_type != 1:
         
 
-    """
-    question = networkToString(response, 12)
-    server_name_tuples = [networkToString(response, question[1] + 16)]
-    for i in range(nsCount-1):
-        server_name_tuples.append(
-                networkToString(response, server_name_tuples[i][1] + 12))
-    servers_name_list = [x[0] for x in server_name_tuples]
-
-    """
-
-    ''' NEED TO GET THE FINAL THING HERE ''' 
+    #  """
+    #  question = networkToString(response, 12)
+    #  server_name_tuples = [networkToString(response, question[1] + 16)]
+    #  for i in range(nsCount-1):
+    #      server_name_tuples.append(
+    #              networkToString(response, server_name_tuples[i][1] + 12))
+    #      servers_name_list = [x[0] for x in server_name_tuples]
+    #  """
+        ''' NEED TO GET THE FINAL THING HERE ''' 
     #  while data_length != 4:
     #      data_length = unpack('!H', response[ans_index - 2:ans_index])
     #      print('inside loops')
