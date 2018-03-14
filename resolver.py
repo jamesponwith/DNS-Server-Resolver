@@ -191,10 +191,10 @@ def unpackResponse(response):
     server_names = getServerNames(response, nsCount)
     server_ips = getServerIps(response, server_names, arCount)
     
-    for i in range(0, len(server_ips)):
-        print(server_ips[i])
+    #for i in range(0, len(server_ips)):
+    #    print(server_ips[i])
 
-    print(server_ips)
+    #print(server_ips)
     print('nsCount: ' + str(nsCount) + 'arCount: ' + str(arCount))
     return server_ips
 
@@ -225,11 +225,15 @@ def getIp(response, answerStart):
     ans_type = unpack('!H', response[ans_index+2:ans_index + 4])[0]
     print('ans_type\t' + str(ans_type))
     #  data_length = unpack('!H', response[answerStart + 10:answerStart + 12])[0]
-    data_length = unpack('!H', response[ans_index + 8:ans_index + 10])[0]
-    print('data_length\t' + str(data_length))
-    #  answer_tuple = [networkToString(response, ans_name[1] + 12)]
-   #if ans_type = 1:
-     
+    #data_length = unpack('!H', response[ans_index + 8:ans_index + 10])[0]
+    #print('data_length\t' + str(data_length))
+    if ans_type == 1:
+        answer_string = socket.inet_ntoa(response[ans_index+12:ans_index +
+            16])
+        print(answer_string)
+    while ans_type != 1:
+        
+
     """
     question = networkToString(response, 12)
     server_name_tuples = [networkToString(response, question[1] + 16)]
