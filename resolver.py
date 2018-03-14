@@ -1,4 +1,22 @@
 #!/usr/bin/env python3
+"""
+DNS Quesry Resolver
+Project 03
+
+Author 1: Patrick Hall
+Author 2: James Ponwith
+
+
+This program implements an elegent recursive solution
+to an iterative problem. Conducts an iterative DNS 
+query for a specified domain name mimicking nslookup
+and dig. 
+
+We should add a -d flag option for arugments to mimic
+dig 
+
+"""
+
 
 import argparse
 import sys
@@ -172,6 +190,9 @@ def unpackResponse(response):
     print('here are the server names')
     server_names = getServerNames(response, nsCount)
     server_ips = getServerIps(response, server_names, arCount)
+    
+    for i in range(0, len(server_ips)):
+        print(server_ips[i])
 
     print(server_ips)
     print('nsCount: ' + str(nsCount) + 'arCount: ' + str(arCount))
@@ -196,7 +217,6 @@ def getIp(response, answerStart):
     This is the ip address you are looking for
     DO THIS THING
     '''
-
     print(answerStart)
     ans_name = networkToString(response, 27)
     ans_index = ans_name[1]
@@ -206,6 +226,19 @@ def getIp(response, answerStart):
     #  data_length = unpack('!H', response[answerStart + 10:answerStart + 12])[0]
     data_length = unpack('!H', response[ans_index + 8:ans_index + 10])[0]
     print('data_length\t' + str(data_length))
+    answer_tuple = [networkToString(response, ans_name[1] + 12)]
+   #if ans_type = 1:
+    print(answer_tuple)    
+        
+    """
+    question = networkToString(response, 12)
+    server_name_tuples = [networkToString(response, question[1] + 16)]
+    for i in range(nsCount-1):
+        server_name_tuples.append(
+                networkToString(response, server_name_tuples[i][1] + 12))
+    servers_name_list = [x[0] for x in server_name_tuples]
+
+    """
 
     ''' NEED TO GET THE FINAL THING HERE ''' 
     #  while data_length != 4:
@@ -229,7 +262,6 @@ def sendAndReceive(sock, port, query, servers):
                 sys.exit(1)
                 return name
                 print(name)
-
 
             # if we got servers; search them
             new_servers = unpackResponse(response)
