@@ -217,16 +217,17 @@ def getIp(response, answerStart):
     This is the ip address you are looking for
     DO THIS THING
     '''
-    print(answerStart)
-    ans_name = networkToString(response, 27)
-    ans_index = ans_name[1]
-    print(ans_name)
-    ans_type = unpack('!H', response[ans_index:ans_index + 2])[0]
+    print('Question index')
+    ans_index = networkToString(response, 12)[1] + 4
+    #  ans_index = ans_name[1]
+    #  print(ans_name)
+    print(ans_index)
+    ans_type = unpack('!H', response[ans_index+2:ans_index + 4])[0]
     print('ans_type\t' + str(ans_type))
     #  data_length = unpack('!H', response[answerStart + 10:answerStart + 12])[0]
     data_length = unpack('!H', response[ans_index + 8:ans_index + 10])[0]
     print('data_length\t' + str(data_length))
-    answer_tuple = [networkToString(response, ans_name[1] + 12)]
+    #  answer_tuple = [networkToString(response, ans_name[1] + 12)]
    #if ans_type = 1:
      
     """
@@ -244,7 +245,7 @@ def getIp(response, answerStart):
     #      data_length = unpack('!H', response[ans_index - 2:ans_index])
     #      print('inside loops')
     #      print(data_length)
-    return answer_tuple 
+    return  'hello'
     #  return socket.inet_ntoa(response[ans_index:ans_index+4])
 
 
