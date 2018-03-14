@@ -151,28 +151,6 @@ def getServerNames(response, nsCount):
     servers_name_list = [x[0] for x in server_name_tuples]
     return server_name_tuples
 
-def getIp(response, answerStart):
-    '''
-    This is the ip address you are looking for
-    '''
-
-    data_length = unpack('!H', response[answerStart:answerStart + 2])
-    while data_length != 4:
-        answerStart += data_length[0] + 12
-        data_length = unpack('!H', response[answerStart:answerStart + 2])
-    return socket.inet_ntoa(response[ans_index:ans_index+4])
-
-
-def resolved(response):
-    '''
-    Checks if there are any answers
-    '''
-    anCount = unpack('!H', response[6:8])[0]
-    if anCount > 0: 
-        print('answer is here')
-        ans_start = networkToString(response, 12)[1] + 15
-        return getIp(response, ans_start)
-    return None 
 
 
 def unpackResponse(response):
@@ -200,6 +178,44 @@ def unpackResponse(response):
     return server_ips
 
 
+def resolved(response):
+    '''
+    Checks if there are any answers
+    '''
+    anCount = unpack('!H', response[6:8])[0]
+    if anCount > 0: 
+        print('answer is here')
+        ans_start = networkToString(response, 12)[1] + 15
+        print(ans_start)
+        return getIp(response, ans_start)
+    return None 
+
+
+def getIp(response, answerStart):
+    '''
+    This is the ip address you are looking for
+    DO THIS THING
+    '''
+
+    print(answerStart)
+    ans_name = networkToString(response, 27)
+    ans_index = ans_name[1]
+    print(ans_name)
+    ans_type = unpack('!H', response[ans_index:ans_index + 2])[0]
+    print('ans_type\t' + str(ans_type))
+    #  data_length = unpack('!H', response[answerStart + 10:answerStart + 12])[0]
+    data_length = unpack('!H', response[ans_index + 8:ans_index + 10])[0]
+    print('data_length\t' + str(data_length))
+
+    ''' NEED TO GET THE FINAL THING HERE ''' 
+    #  while data_length != 4:
+    #      data_length = unpack('!H', response[ans_index - 2:ans_index])
+    #      print('inside loops')
+    #      print(data_length)
+    return 'thing'
+    #  return socket.inet_ntoa(response[ans_index:ans_index+4])
+
+
 def sendAndReceive(sock, port, query, servers):
     for ip_addr in servers:
         try:
@@ -209,9 +225,11 @@ def sendAndReceive(sock, port, query, servers):
             # check if resolved
             name = resolved(response)
             if name is not None: # we've got a response
+                print(name)
+                sys.exit(1)
                 return name
                 print(name)
-                sys.exit(0)
+
 
             # if we got servers; search them
             new_servers = unpackResponse(response)
@@ -220,7 +238,7 @@ def sendAndReceive(sock, port, query, servers):
             sendAndReceive(sock, port, query, new_servers)
         except socket.timeout as e:
             print("Exception:", e)
-        break
+        #  break
 
 def main(argv=None):
     if argv is None:
