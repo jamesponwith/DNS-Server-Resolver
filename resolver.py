@@ -142,11 +142,11 @@ def getIp(response, answerStart):
         answer_string = socket.inet_ntoa(response[ans_index+12:ans_index +
             16])
         return answer_string
-    elif num_ans == 1:
+    elif num_ans == 1 and ans_type != 1:
         ans_index += 12
         new_question = networkToString(response, ans_index)[0]
         print(new_question)
-        mainLoop(new_question[0], False)
+        mainLoop(new_question, False)
 
     while ans_type != 1:
         ans_index += 10 
@@ -162,6 +162,7 @@ def getIp(response, answerStart):
 
 
 def mainLoop(host_ip, mxlookup):
+    print('in main loop')
 
     with open('root-servers.txt') as f:
         servers = f.read().splitlines()
