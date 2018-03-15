@@ -145,18 +145,29 @@ def getIp(response, answerStart):
     This is the ip address you are looking for
     '''
     ans_index = networkToString(response, 12)[1] + 4
+    print(ans_index)
     ans_type = unpack('!H', response[ans_index+2:ans_index + 4])[0]
     if ans_type == 1:
         answer_string = socket.inet_ntoa(response[ans_index+12:ans_index +
             16])
         return answer_string
+    else:
+        num_ans = unpack('!H', response[6:8])[0]
+        print(num_ans)
+        if(num_ans == 1):
+            print()
+        else:
+            print()
+
     while ans_type != 1:
         ans_index += 10 
         ans_index += unpack('!H', response[ans_index: ans_index + 2])[0]
         ans_index += 4
-        print_var = unpack('!H',response[ans_index:ans_index + 2])[0]
-        ans_type = print_var
-    return socket.inet_ntoa(response[ans_index + 12:ans_index + 16])    
+        ans_type = unpack('!H',response[ans_index:ans_index + 2])[0]
+    ans_index += 8 
+    data_length = unpack('!H', response[ans_index:ans_index + 2])[0]
+    ans_index += 2
+    return socket.inet_ntoa(response[ans_index:ans_index + data_length])    
 
 
 def main(argv=None):
@@ -176,8 +187,8 @@ def main(argv=None):
 
     # the sexy recursive function
     ip_addr = sendAndReceive(sock, 53, query, servers)
-    print('ip addr >>.')
-    print(ip_addr)
+    #print('ip addr >>.')
+    #print(ip_addr)
 
 if __name__ == "__main__":
     sys.exit(main())
