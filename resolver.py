@@ -134,6 +134,7 @@ def getIp(response, answerStart):
     '''
     This is the ip address you are looking for
     '''
+    num_ans = unpack('!H', response[6:8])[0]
     ans_index = networkToString(response, 12)[1] + 4
     print(ans_index)
     ans_type = unpack('!H', response[ans_index+2:ans_index + 4])[0]
@@ -141,20 +142,17 @@ def getIp(response, answerStart):
         answer_string = socket.inet_ntoa(response[ans_index+12:ans_index +
             16])
         return answer_string
-    else:
-        num_ans = unpack('!H', response[6:8])[0]
-        print(num_ans)
-            #
+    elif num_ans == 1:
+        ans_index += 12
+        new_question = networkToString(response, ans_index)[0]
+        print(new_question)
+        mainLoop(new_question[0], False)
 
     while ans_type != 1:
         ans_index += 10 
         ans_index += unpack('!H', response[ans_index: ans_index + 2])[0]
         ans_index += 4
         ans_type = unpack('!H',response[ans_index:ans_index + 2])[0]
-        if num_ans == 1:
-            ans_index += 10
-            new_question = networkToString(response, ans_index)
-            mainLoop(new_question[0])
 
     ans_index += 8 
     data_length = unpack('!H', response[ans_index:ans_index + 2])[0]
