@@ -26,38 +26,27 @@ from startercode import stringToNetwork
 from startercode import networkToString 
 from startercode import constructQuery
 
-def main(argv=None):
-    if argv is None:
-        argv = sys.argv
-
-    args = parseArgs()
-
-    with open('root-servers.txt') as f:
-        servers = f.read().splitlines()
-
-    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sock.settimeout(10)   # socket should timeout after 5 seconds
-
-    id = random.randint(0, 65535)
-    query = constructQuery(id, args.host_ip)
-
-    # the sexy recursive function
-    name = sendAndReceive(sock, 53, query, servers)
-
-
 def sendAndReceive(sock, port, query, servers):
     for ip_addr in servers:
+        #  print('ip_addr\t' + str(ip_addr))
         try:
             sock.sendto(query, (ip_addr, 53))
             response = sock.recv(4096)
 
+            aa, rc = getFlags(response)
+            
             # check if resolved
-            name = resolved(response)
-            if name is not None: # we've got a response
-                print(name)
+            if aa is True:
+                print(resolved(response))
+                print('we resolved it')
                 sys.exit(1)
-                return name
-                print(name)
+                #  return resolved(response)
+
+            #  if name is not None: # we've got a response
+            #      print(name)
+            #      sys.exit(1)
+            #      return name
+            #      print(name)
 
             # if we got servers; search them
             new_servers = unpackResponse(response)
@@ -77,43 +66,52 @@ def parseArgs():
     return args
 
 
+def getFlags(response):
+    flags = unpack('!H', response[2:4])[0]
+    # Flag bit manipulation
+    # TODO: handle -MX requests
+    aaFlag = ((flags & 0x0400) != 0)
+    rcFlag = (flags & 15)
+    return aaFlag, rcFlag
+
+
+
 def unpackResponse(response):
     '''
     Unpacks the response for the list of server ips
     '''
-    id = unpack('!H', response[0:2])[0]
-    flags = unpack('!H', response[2:4])[0]
+    #  id = unpack('!H', response[0:2])[0]
     qdCount = unpack('!H', response[4:6])[0]
     anCount = unpack('!H', response[6:8])[0]
     nsCount = unpack('!H', response[8:10])[0]
     arCount = unpack('!H', response[10:12])[0]
 
-    # Flag bit manipulation
-    aaFlag = ((flags & 0x0400) != 0)
-    rcFlag = (flags & 15)
 
     # create list of tuples with servername and end index
-    server_names = getServerNames(response, nsCount)
-    server_ips = getServerIps(response, server_names, arCount)
+    server_names = getAuthNames(response, nsCount)
+    server_ips = ipsFromAddtl(response, server_names, arCount)
     
     return server_ips
 
 
-def getServerNames(response, nsCount):
+def getAuthNames(response, nsCount):
     '''
     Gets the list of server names as tuples
     we know where the authority rrs start from here
     '''
     question = networkToString(response, 12)
-    server_name_tuples = [networkToString(response, question[1] + 16)]
+
+    server_names = [networkToString(response, question[1] + 16)]
+
     for i in range(nsCount-1):
-        server_name_tuples.append(
-                networkToString(response, server_name_tuples[i][1] + 12))
-    servers_name_list = [x[0] for x in server_name_tuples]
-    return server_name_tuples
+        server_names.append(networkToString(response, server_names[i][1] + 12))
+
+    #  servers_name_list = [x[0] for x in server_name_tuples]
+
+    return server_names 
 
 
-def getServerIps(response, server_name_tuples, arCount):
+def ipsFromAddtl(response, server_name_tuples, arCount):
     ''' 
     Gets the list of server ips
     '''
@@ -160,6 +158,26 @@ def getIp(response, answerStart):
         ans_type = print_var
     return socket.inet_ntoa(response[ans_index + 12:ans_index + 16])    
 
+
+def main(argv=None):
+    if argv is None:
+        argv = sys.argv
+
+    args = parseArgs()
+
+    with open('root-servers.txt') as f:
+        servers = f.read().splitlines()
+
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.settimeout(10)   # socket should timeout after 5 seconds
+
+    id = random.randint(0, 65535)
+    query = constructQuery(id, args.host_ip)
+
+    # the sexy recursive function
+    ip_addr = sendAndReceive(sock, 53, query, servers)
+    print('ip addr >>.')
+    print(ip_addr)
 
 if __name__ == "__main__":
     sys.exit(main())
