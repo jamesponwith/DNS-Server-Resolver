@@ -187,15 +187,9 @@ def unpackResponse(response):
     rcFlag = (flags & 15)
 
     # create list of tuples with servername and end index
-    #  print('here are the server names')
     server_names = getServerNames(response, nsCount)
     server_ips = getServerIps(response, server_names, arCount)
     
-    #for i in range(0, len(server_ips)):
-    #    print(server_ips[i])
-
-    #print(server_ips)
-    #  print('nsCount: ' + str(nsCount) + 'arCount: ' + str(arCount))
     return server_ips
 
 
@@ -205,9 +199,7 @@ def resolved(response):
     '''
     anCount = unpack('!H', response[6:8])[0]
     if anCount > 0: 
-        #  print('answer is here')
         ans_start = networkToString(response, 12)[1] + 15
-        #  print(ans_start)
         return getIp(response, ans_start)
     return None 
 
@@ -219,7 +211,6 @@ def getIp(response, answerStart):
     '''
     ans_index = networkToString(response, 12)[1] + 4
     ans_type = unpack('!H', response[ans_index+2:ans_index + 4])[0]
-    print('ans_type\t' + str(ans_type))
     if ans_type == 1:
         answer_string = socket.inet_ntoa(response[ans_index+12:ans_index +
             16])
