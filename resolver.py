@@ -57,15 +57,6 @@ def sendAndReceive(sock, port, query, servers):
             print("Exception:", e)
 
 
-def parseArgs():
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-            "-m", "--mxlookup",  help="MX lookup", action="store_true")
-    parser.add_argument("host_ip", help="Host name's IP address", type=str)
-    args = parser.parse_args()
-    return args
-
-
 def getFlags(response):
     flags = unpack('!H', response[2:4])[0]
     # Flag bit manipulation
@@ -73,7 +64,6 @@ def getFlags(response):
     aaFlag = ((flags & 0x0400) != 0)
     rcFlag = (flags & 15)
     return aaFlag, rcFlag
-
 
 
 def unpackResponse(response):
@@ -154,31 +144,63 @@ def getIp(response, answerStart):
     else:
         num_ans = unpack('!H', response[6:8])[0]
         print(num_ans)
-        if(num_ans == 1):
-            print()
-        else:
-            print()
+            #
 
     while ans_type != 1:
         ans_index += 10 
         ans_index += unpack('!H', response[ans_index: ans_index + 2])[0]
         ans_index += 4
         ans_type = unpack('!H',response[ans_index:ans_index + 2])[0]
+        if num_ans == 1:
+            ans_index += 10
+            new_question = networkToString(response, ans_index)
+            mainLoop(new_question[0])
+
     ans_index += 8 
     data_length = unpack('!H', response[ans_index:ans_index + 2])[0]
     ans_index += 2
     return socket.inet_ntoa(response[ans_index:ans_index + data_length])    
 
 
-def main(argv=None):
-    if argv is None:
-        argv = sys.argv
 
-    args = parseArgs()
+def mainLoop(host_ip, mxlookup):
 
     with open('root-servers.txt') as f:
         servers = f.read().splitlines()
 
+    print(host_ip)
+    print(mxlookup)
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.settimeout(10)   # socket should timeout after 5 seconds
+
+    id = random.randint(0, 65535)
+    query = constructQuery(id, host_ip)
+
+    # the sexy recursive function
+    ip_addr = sendAndReceive(sock, 53, query, servers)
+    #print('ip addr >>.')
+    #print(ip_addr)
+
+
+def parseArgs():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+            "-m", "--mxlookup",  help="MX lookup", action="store_true")
+    parser.add_argument("host_ip", help="Host name's IP address", type=str)
+    args = parser.parse_args()
+    return args
+
+
+def main(argv=None):
+    if argv is None:
+        argv = sys.argv
+        
+    args = parseArgs()
+    print(args)
+    
+    mainLoop(args.host_ip, args.mxlookup)
+   
+    """
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.settimeout(10)   # socket should timeout after 5 seconds
 
@@ -189,6 +211,7 @@ def main(argv=None):
     ip_addr = sendAndReceive(sock, 53, query, servers)
     #print('ip addr >>.')
     #print(ip_addr)
+    """
 
 if __name__ == "__main__":
     sys.exit(main())
