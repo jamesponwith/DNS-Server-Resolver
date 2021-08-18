@@ -1,5 +1,5 @@
 # DNS-Server-Resolver
-
-Usage: ./resolver.py 
-|--> User Input: [ A domain name or IP to resolve ]
-|----> Use [-d] flag to simulate the 'dig' command
+</br>
+Usage: ./resolver.py </br>
+|--> User Input: [ A domain name or IP to resolve ] </br>
+|----> Use [-d] flag to simulate the 'dig' command </br>
